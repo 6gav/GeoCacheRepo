@@ -108,10 +108,9 @@ SoftwareSerial gps(GPS_RX, GPS_TX);
 #if NEO_ON
 #include <Adafruit_NeoPixel.h>
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(40, NEO_TX, NEO_GRB + NEO_KHZ800);
-struct RGB
-{
-	uint8_t r = 0, g = 0, b = 0;
-}; 
+
+uint8_t r = 0, g = 0, b = 0;
+ 
 #endif
 
 #if SDC_ON
@@ -259,30 +258,30 @@ parameters are in global data space.
 #define NUM_PIXELS 40
 #define HOR_ROW 5
 #define VER_COL 8
-void showLeft(RGB*r) {
+void showLeft(uint8_t r, uint8_t g, uint8_t b) {
 	for (int i = 0; i < NUM_PIXELS; i += 8) {
-		strip.setPixelColor(i, r->r, r->g, r->b);
+		strip.setPixelColor(i, r, g, b);
 	}
 	strip.setBrightness(10);
 	strip.show();
 }
-void showRight(RGB*r) {
+void showRight(uint8_t r, uint8_t g, uint8_t b) {
 	for (int i = 7; i < NUM_PIXELS; i += 8) {
-		strip.setPixelColor(i, r->r, r->g, r->b);
+		strip.setPixelColor(i, r, g, b);
 	}
 	strip.setBrightness(10);
 	strip.show();
 }
-void showUp(RGB*r) {
-	for (int i = 0; i < HOR_ROW; i++) {
-		strip.setPixelColor(i, r->r, r->g, r->b);
+void showUp(uint8_t r, uint8_t g, uint8_t b) {
+	for (int i = 0; i < VER_COL; i++) {
+		strip.setPixelColor(i, r, g, b);
 	}
 	strip.setBrightness(10);
 	strip.show();
 }
-void showDown(RGB*r) {
-	for (int i = 7; i < NUM_PIXELS - HOR_ROW; i++) {
-		strip.setPixelColor(i, r->r, r->g, r->b);
+void showDown(uint8_t r, uint8_t g, uint8_t b) {
+	for (int i = 33; i < NUM_PIXELS; i++) {
+		strip.setPixelColor(i, r, g, b);
 	}
 	strip.setBrightness(10);
 	strip.show();
@@ -293,61 +292,60 @@ void setNeoPixel(void)
 {
 	// add code here
 	uint8_t r = 0, g = 0, b = 0;
-	RGB rgb;
 #pragma region pixel color based on distance
 	if (distance > 1000) {//distance in feet
-		rgb.r = 255;
-		rgb.g = 128;
-		rgb.b = 128;
+		r = 255;
+		g = 128;
+		b = 128;
 	}
 	else if (distance > 500) {
-		rgb.r = 255;
-		rgb.g = 0;
-		rgb.b = 0;
+		r = 255;
+		g = 0;
+		b = 0;
 	}
 	else if (distance > 100) {
-		rgb.r = 128;
-		rgb.g = 160;
-		rgb.b = 128;
+		r = 128;
+		g = 160;
+		b = 128;
 	}
 	else if (distance > 50) {
-		rgb.r = 64;
-		rgb.g = 255;
-		rgb.b = 64;
+		r = 64;
+		g = 255;
+		b = 64;
 		if (millis() % 2000 <= 1000) {
-			rgb.r = rgb.g = rgb.b = 0;
+			r = g = b = 0;
 		}
 	}
 #pragma endregion
 	//strip.setPixelColor(25, 255, 255, 255);
 	switch ((int)heading % 8) {
 	case 0:
-		showRight(&rgb);
+		showRight(r,g,b);
 		break;
 	case 1:
-		showRight(&rgb);
-		showUp(&rgb);
+		showRight(r, g, b);
+		showUp(r, g, b);
 		break;
 	case 2:
-		showUp(&rgb);
+		showUp(r, g, b);
 		break;
 	case 3:
-		showUp(&rgb);
-		showLeft(&rgb);
+		showUp(r, g, b);
+		showLeft(r, g, b);
 		break;
 	case 4:
-		showLeft(&rgb);
+		showLeft(r, g, b);
 		break;
 	case 5:
-		showLeft(&rgb);
-		showDown(&rgb);
+		showLeft(r, g, b);
+		showDown(r, g, b);
 		break;
 	case 6:
-		showDown(&rgb);
+		showDown(r, g, b);
 		break;
 	case 7:
-		showDown(&rgb);
-		showRight(&rgb);
+		showDown(r, g, b);
+		showRight(r, g, b);
 		break;
 	}
 	//8 directional data points 
@@ -490,11 +488,12 @@ void setup(void)
 	// init NeoPixel Shield
 	strip.begin();
 	//splash sequence
-	RGB rgb;
-	showDown(&rgb); delay(500);
-	showLeft(&rgb); delay(500);
-	showUp(&rgb); delay(500);
-	showRight(&rgb); delay(500);
+	uint8_t r, g, b;
+	r = g = b = 128;
+	showDown(r, g, b); delay(500);
+	showLeft(r, g, b); delay(500);
+	showUp(r, g, b); delay(500);
+	showRight(r, g, b); delay(500);
 	#endif	
 
 	#if SDC_ON
