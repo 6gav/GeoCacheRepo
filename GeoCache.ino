@@ -1,5 +1,5 @@
 /******************************************************************************
-
+Final Copy ---
 GeoCache Hunt Project (GeoCache.ino)
 
 This is skeleton code provided as a project development guideline only.  You
@@ -82,7 +82,7 @@ There may not be sufficient room in the PROGRAM or DATA memory to
 enable all these libraries at the same time.  You must have NEO_ON, 
 GPS_ON and SDC_ON during the actual GeoCache Flag Hunt on Finals Day.
 */
-#define NEO_ON 0		// NeoPixel Shield (0=OFF, 1=ON)
+#define NEO_ON 1		// NeoPixel Shield (0=OFF, 1=ON)
 #define LOG_ON 1		// Serial Terminal Logging (0=OFF, 1=ON)
 #define SDC_ON 0		// Secure Digital Card (0=OFF, 1=ON)
 #define GPS_ON 0		// 0 = simulated GPS message, 1 = actual GPS message
@@ -108,6 +108,10 @@ SoftwareSerial gps(GPS_RX, GPS_TX);
 #if NEO_ON
 #include <Adafruit_NeoPixel.h>
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(40, NEO_TX, NEO_GRB + NEO_KHZ800);
+struct RGB
+{
+	uint8_t r = 0, g = 0, b = 0;
+}; 
 #endif
 
 #if SDC_ON
@@ -171,6 +175,8 @@ float degMin2DecDeg(char *cind, char *ccor)
 	float degrees = 0.0;
 	
 	// add code here
+	float minutes = atoi(ccor);
+
 	
 	return(degrees);
 }
@@ -248,10 +254,107 @@ by this function do not need to be passed in, since these
 parameters are in global data space.
 
 */
+
+#pragma region NeoData
+#define NUM_PIXELS 40
+#define HOR_ROW 5
+#define VER_COL 8
+void showLeft(RGB*r) {
+	for (int i = 0; i < NUM_PIXELS; i += 8) {
+		strip.setPixelColor(i, r->r, r->g, r->b);
+	}
+	strip.setBrightness(10);
+	strip.show();
+}
+void showRight(RGB*r) {
+	for (int i = 7; i < NUM_PIXELS; i += 8) {
+		strip.setPixelColor(i, r->r, r->g, r->b);
+	}
+	strip.setBrightness(10);
+	strip.show();
+}
+void showUp(RGB*r) {
+	for (int i = 0; i < HOR_ROW; i++) {
+		strip.setPixelColor(i, r->r, r->g, r->b);
+	}
+	strip.setBrightness(10);
+	strip.show();
+}
+void showDown(RGB*r) {
+	for (int i = 7; i < NUM_PIXELS - HOR_ROW; i++) {
+		strip.setPixelColor(i, r->r, r->g, r->b);
+	}
+	strip.setBrightness(10);
+	strip.show();
+}
+#pragma endregion
+
 void setNeoPixel(void)
 {
 	// add code here
+	uint8_t r = 0, g = 0, b = 0;
+	RGB rgb;
+#pragma region pixel color based on distance
+	if (distance > 1000) {//distance in feet
+		rgb.r = 255;
+		rgb.g = 128;
+		rgb.b = 128;
+	}
+	else if (distance > 500) {
+		rgb.r = 255;
+		rgb.g = 0;
+		rgb.b = 0;
+	}
+	else if (distance > 100) {
+		rgb.r = 128;
+		rgb.g = 160;
+		rgb.b = 128;
+	}
+	else if (distance > 50) {
+		rgb.r = 64;
+		rgb.g = 255;
+		rgb.b = 64;
+		if (millis() % 2000 <= 1000) {
+			rgb.r = rgb.g = rgb.b = 0;
+		}
+	}
+#pragma endregion
+	//strip.setPixelColor(25, 255, 255, 255);
+	switch ((int)heading % 8) {
+	case 0:
+		showRight(&rgb);
+		break;
+	case 1:
+		showRight(&rgb);
+		showUp(&rgb);
+		break;
+	case 2:
+		showUp(&rgb);
+		break;
+	case 3:
+		showUp(&rgb);
+		showLeft(&rgb);
+		break;
+	case 4:
+		showLeft(&rgb);
+		break;
+	case 5:
+		showLeft(&rgb);
+		showDown(&rgb);
+		break;
+	case 6:
+		showDown(&rgb);
+		break;
+	case 7:
+		showDown(&rgb);
+		showRight(&rgb);
+		break;
+	}
+	//8 directional data points 
+	//RIGHT = 0
+
 }
+
 
 #endif	// NEO_ON
 
@@ -373,10 +476,10 @@ char* getGpsMessage(void)
 	return(cstr);
 }
 #endif
-
 void setup(void)
 {
 	pinMode(SWITCH_BUTTON, INPUT_PULLUP);
+	pinMode(2, INPUT);
 
 	#if LOG_ON
 	// init serial interface
@@ -385,6 +488,13 @@ void setup(void)
 
 	#if NEO_ON
 	// init NeoPixel Shield
+	strip.begin();
+	//splash sequence
+	RGB rgb;
+	showDown(&rgb); delay(500);
+	showLeft(&rgb); delay(500);
+	showUp(&rgb); delay(500);
+	showRight(&rgb); delay(500);
 	#endif	
 
 	#if SDC_ON
@@ -396,6 +506,7 @@ void setup(void)
 	but remains open.  The file automatcially closes when the program
 	is reloaded or the board is reset.
 	*/
+	
 	#endif
 
 	#if GPS_ON
@@ -408,9 +519,84 @@ void setup(void)
 
 	// set target button pinmode
 }
+uint32_t ind = 0, type = 0;
+uint8_t potentiometerVal,messageLength = 15;
 
+void Update() {
+	potentiometerVal = analogRead(0) / 100;
+	uint32_t col;
+	for (int i = 0; i < 40; i++) {
+		switch (type % 3) {
+		case 0: {
+			switch ((i + ind) % 7) {
+			case 0:
+				strip.setPixelColor(i, 255, 0, 0);
+				break;
+			case 1:
+				strip.setPixelColor(i, 255, 128, 0);
+				break;
+			case 2:
+				strip.setPixelColor(i, 255, 255, 0);
+				break;
+			case 3:
+				strip.setPixelColor(i, 0, 255, 0);
+				break;
+			case 4:
+				strip.setPixelColor(i, 0, 0, 255);
+				break;
+			case 5:
+				strip.setPixelColor(i, 0, 128, 255);
+				break;
+			case 6:
+				strip.setPixelColor(i, 255, 0, 255);
+				break;
+			}
+		}
+		case 1: {
+			switch ((i + ind) % 7) {
+			case 6:
+				strip.setPixelColor(i, 255, 0, 0);
+				break;
+			case 5:
+				strip.setPixelColor(i, 255, 128, 0);
+				break;
+			case 4:
+				strip.setPixelColor(i, 255, 255, 0);
+				break;
+			case 3:
+				strip.setPixelColor(i, 0, 255, 0);
+				break;
+			case 2:
+				strip.setPixelColor(i, 0, 0, 255);
+				break;
+			case 1:
+				strip.setPixelColor(i, 0, 128, 255);
+				break;
+			case 0:
+				strip.setPixelColor(i, 255, 0, 255);
+				break;
+			}
+		}
+		}
+
+		strip.setBrightness(potentiometerVal);
+	}
+	strip.show();
+	ind++;
+}
 void loop(void)
 {
+	//increment to type every 750 milliseconds
+	if (millis() % 750 == 0)
+	{
+		if (digitalRead(2)) {
+			type++;
+			strip.clear();
+		}
+	}
+	//update every 50 milliseconds
+	if (millis() % 50 == 0) 
+		Update();
 	// get GPS message
 	char *cstr = getGpsMessage();
 
@@ -449,13 +635,25 @@ void loop(void)
 		* 2C            // checksum
 		/ r / n         // return and newline
 		*/
+
+		char * message[15];
+
 		char* longitude;
 		char* latitude;
 
-
-
 		char* tempStr = strtok(cstr, ",");
-		for (uint32_t i = 0; tempStr != NULL; i++) {
+		uint8_t i = 0;
+		for (; tempStr != "\r\n"; tempStr = strtok(cstr, ",")) {
+			i++;
+			message[i] = tempStr;
+		}
+
+		float decLat = degMin2DecDeg(message[4], message[3]);
+		float decLon = degMin2DecDeg(message[6], message[5]);
+
+
+		tempStr = strtok(cstr, ",");
+		for (i = 0; tempStr != NULL; i++) {
 			
 			switch (i)
 			{
@@ -470,28 +668,33 @@ void loop(void)
 				break;
 			}
 			tempStr = strtok(NULL, ",");
-
+ 
 		}
-
+		Serial.print("I: ");
+		Serial.println(i);
 		Serial.println(longitude);
 		Serial.println(latitude);
 
 		// convert latitude and longitude degrees minutes to decimal degrees
-		degMin2DecDeg(latitude, );
+		float decDeg = degMin2DecDeg(latitude, longitude);
 
 		// calculate destination distance
-				
+		//distance = calcDistance(flat1, flon1, flat2, flon2);
+
 		// calculate destination heading
+		heading;//moving direction
 		
 		// calculate relative bearing
 		
 		#if SDC_ON
 		// write required data to SecureDigital then execute flush()
+		
 		#endif
 		
 		#if NEO_ON
 			// set NeoPixel target display information
-			setNeoPixel(target, heading, distance);
+		
+			setNeoPixel();
 		#endif			
 	}
 }
