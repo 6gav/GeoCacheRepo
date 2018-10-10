@@ -84,7 +84,7 @@ GPS_ON and SDC_ON during the actual GeoCache Flag Hunt on Finals Day.
 */
 #define NEO_ON 1		// NeoPixel Shield (0=OFF, 1=ON)
 #define LOG_ON 1		// Serial Terminal Logging (0=OFF, 1=ON)
-#define SDC_ON 0		// Secure Digital Card (0=OFF, 1=ON)
+#define SDC_ON 1		// Secure Digital Card (0=OFF, 1=ON)
 #define GPS_ON 0		// 0 = simulated GPS message, 1 = actual GPS message
 
 // define pin usage
@@ -115,6 +115,7 @@ uint8_t r = 0, g = 0, b = 0;
 
 #if SDC_ON
 #include <SD.h>
+SDLib::File file;
 #endif
 
 /*
@@ -505,7 +506,8 @@ void setup(void)
 	but remains open.  The file automatcially closes when the program
 	is reloaded or the board is reset.
 	*/
-	
+	SD.begin();
+	file = SD.open("MyMap.txt");
 	#endif
 
 	#if GPS_ON
@@ -594,8 +596,10 @@ void loop(void)
 		}
 	}
 	//update every 50 milliseconds
-	if (millis() % 50 == 0) 
+	if (millis() % 50 == 0) {
+		Serial.print("Loophi");
 		Update();
+	}
 	// get GPS message
 	char *cstr = getGpsMessage();
 
@@ -687,12 +691,13 @@ void loop(void)
 		
 		#if SDC_ON
 		// write required data to SecureDigital then execute flush()
-		
+		file.write(cstr);
+		file.flush();
 		#endif
 		
 		#if NEO_ON
 			// set NeoPixel target display information
-		
+			
 			setNeoPixel();
 		#endif			
 	}
